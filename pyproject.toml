@@ -1,0 +1,17 @@
+[project]
+name = "nsdget"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "xnought", email = "drbertucci@hotmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+nsdget = "nsdget:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

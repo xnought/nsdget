@@ -7,7 +7,9 @@ authors = [
     { name = "xnought", email = "drbertucci@hotmail.com" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "wget>=3.2",
+]
 
 [project.scripts]
 nsdget = "nsdget:main"
@@ -18,5 +20,8 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "ipykernel>=6.29.5",
+    "pandas>=2.2.3",
+    "pyarrow>=19.0.1",
     "pytest>=8.3.5",
 ]

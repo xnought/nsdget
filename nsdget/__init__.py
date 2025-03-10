@@ -155,12 +155,16 @@ def df_row_open_stimuli_image(row: pd.DataFrame, base_dir: str = DATA_DIR):
         coco_id=row["cocoId"], coco_split=row["cocoSplit"], base_dir=base_dir
     )
 
+def download_betas_given_session(subject: int, session: int):
+    wget.download()
+    pass
+
 
 def main():
-    df = df_stimuli_info()
-    sub = df[df["shared1000"] == True].copy()
-    sub["img"] = df_download_stimuli_images(sub)
-    Image.open(sub.iloc[0]["img"]).show()
+    # df = df_stimuli_info()
+    # sub = df[df["shared1000"] == True].copy()
+    # sub["img"] = df_download_stimuli_images(sub)
+    # Image.open(sub.iloc[0]["img"]).show()
 
 
 if __name__ == "__main__":

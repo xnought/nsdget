@@ -49,3 +49,4 @@ make
 
 - https://naturalscenesdataset.org/ (Allen, St-Yves, Wu, Breedlove, Prince, Dowdle, Nau, Caron, Pestilli, Charest, Hutchinson, Naselaris*, & Kay*. A massive 7T fMRI dataset to bridge cognitive neuroscience and artificial intelligence. Nature Neuroscience (2021).)
 - https://cocodataset.org/#home
+- https://github.com/clane9/NSD-Flat/blob/b6851300ea3778eae7e4dbb88a85d71ce18cb9a5/generate_dataset.py#L157

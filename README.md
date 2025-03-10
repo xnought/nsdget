@@ -17,6 +17,8 @@ Not affiliated with Natural Scenes Dataset. I just wanted an easier and quicker 
 
 ## Usage
 
+To use the data, first submit a form to the NSD people: [NSD Data Access Agreement](https://docs.google.com/forms/d/e/1FAIpQLSduTPeZo54uEMKD-ihXmRhx0hBDdLHNsVyeo_kCb8qbyAkXuQ/viewform?usp=send_form). Then,
+
 **Install**
 
 ```bash

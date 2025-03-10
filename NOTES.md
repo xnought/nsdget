@@ -1,0 +1,8 @@
+# Notes
+
+- Here is an example of flattening all the data into one dataframe https://huggingface.co/datasets/clane9/NSD-Flat
+- There are sessions, runs, and trials.
+- There are max 40 sessions where a person is being scanned (once a week for ~ a year)
+- Each session is broken up into runs
+- Each run is broken up into trials
+- Each trial is showing an image for 3 seconds and a rest pause for 1 second 

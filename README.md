@@ -4,6 +4,7 @@
 
 Quickly get a subset of stimuli (images shown to subject) and corresponding fMRI data from the [Natural Scenes Dataset](https://naturalscenesdataset.org/).
 
+Not affiliated with Natural Scenes Dataset. I just wanted an easier and quicker way to download the data I needed from them (hence this package).
 
 **Roadmap**
 

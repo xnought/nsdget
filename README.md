@@ -1,10 +1,20 @@
 # nsdget
 
-[NSD](https://naturalscenesdataset.org/) API to easily download data.
+**nsdget: Natural Scenes Dataset Getter via Python API.**
+
+Quickly get a subset of stimuli (images shown to subject) and corresponding fMRI data from the [Natural Scenes Dataset](https://naturalscenesdataset.org/).
+
+
+**Roadmap**
+
+- [x] Functions to download stimuli (images) w/out downloading the 40gb total image object. Just download images directly from COCO.
+- [ ] Function to download fMRI data  
+- [ ] Document functions better
+- [ ] Publish to PyPi
 
 ## Usage
 
-Request stimuli (image), then fMRI data associated with that stimuli.
+- Download stimuli images (coco data) example in [`view_info.ipynb`](./notebooks/view_info.ipynb)
 
 ## Development
 
@@ -12,3 +22,8 @@ Request stimuli (image), then fMRI data associated with that stimuli.
 uv sync
 make
 ```
+
+## References
+
+- https://naturalscenesdataset.org/
+- https://cocodataset.org/#home

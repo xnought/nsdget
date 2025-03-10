@@ -20,19 +20,12 @@ def download_stimuli_info():
     df.to_parquet(os.path.join(DATA_DIR, INFO_FILENAME))
 
 
-def df_stimuli_info():
-    filename = os.path.join(DATA_DIR, INFO_FILENAME)
+def df_stimuli_info(base_dir: str = DATA_DIR):
+    filename = os.path.join(base_dir, INFO_FILENAME)
     if not os.path.exists(filename):
         print(f"Downloading to {filename}")
         download_stimuli_info()
     return pd.read_parquet(filename)
-
-
-def download_images():
-    download_nsd(
-        "nsddata_stimuli/stimuli/nsd/nsd_stimuli.hdf5",
-        os.path.join(DATA_DIR, IMAGES_FILENAME),
-    )
 
 
 def left_pad_zeros(number: int, pad_to=12):
@@ -106,34 +99,32 @@ def download_stimuli_images(
     coco_ids: list[int],
     splits: list[str],
     crops: list[list[float]],
-    save_to_dir: str = DATA_DIR,
+    base_dir: str = DATA_DIR,
 ) -> list[str]:
     # top level dir to save to
-    if not os.path.exists(save_to_dir):
-        os.mkdir(save_to_dir)
+    if not os.path.exists(base_dir):
+        os.mkdir(base_dir)
 
     # sub directories (ie val2017, train2017) to save to
     for split in splits:
-        dir = os.path.join(save_to_dir, split)
+        dir = os.path.join(base_dir, split)
         if not os.path.exists(dir):
             os.mkdir(dir)
 
     # links to download
     links = []
-    relative_paths = []
+    paths = []
     for (link, filename), split in zip(coco_image_links(coco_ids, splits), splits):
         links.append(link)
-        relative_paths.append(os.path.join(split, filename))
+        paths.append(os.path.join(base_dir, split, filename))
 
     # download on max possible threads in parallel
-    parallel_image_download(
-        links, [os.path.join(save_to_dir, r) for r in relative_paths], crops
-    )
+    parallel_image_download(links, paths, crops)
 
-    return relative_paths
+    return paths
 
 
-def df_download_stimuli_images(df: pd.DataFrame, save_to_dir=DATA_DIR) -> list[str]:
+def df_download_stimuli_images(df: pd.DataFrame, base_dir=DATA_DIR) -> list[str]:
     assert (
         "cocoId" in df.columns and "cocoSplit" in df.columns and "cropBox" in df.columns
     )
@@ -141,7 +132,7 @@ def df_download_stimuli_images(df: pd.DataFrame, save_to_dir=DATA_DIR) -> list[s
         coco_ids=df["cocoId"],
         splits=df["cocoSplit"],
         crops=df["cropBox"],
-        save_to_dir=save_to_dir,
+        base_dir=base_dir,
     )
 
 
@@ -166,7 +157,7 @@ def main():
     df = df_stimuli_info()
     sub = df[df["shared1000"] == True].copy()
     sub["img"] = df_download_stimuli_images(sub)
-    Image.open(os.path.join(DATA_DIR, sub.iloc[0]["img"])).show()
+    Image.open(sub.iloc[0]["img"]).show()
 
 
 if __name__ == "__main__":

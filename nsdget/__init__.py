@@ -11,20 +11,27 @@ INFO_FILENAME = "nsd_stim_info_merged.parquet"
 IMAGES_FILENAME = "nsd_stimuli.hdf5"
 
 
+def mkdir_if_not_exists(base_dir: str):
+    if not os.path.exists(base_dir):
+        os.mkdir(base_dir)
+
+
 def download_nsd(filepath: str, outfile: str):
     wget.download(f"{BASE_URL}/{filepath}", out=outfile)
 
 
-def download_stimuli_info():
+def download_stimuli_info(base_dir: str = DATA_DIR):
+    mkdir_if_not_exists(base_dir)
+
     df = pd.read_pickle(f"{BASE_URL}/nsddata/experiments/nsd/nsd_stim_info_merged.pkl")
-    df.to_parquet(os.path.join(DATA_DIR, INFO_FILENAME))
+    df.to_parquet(os.path.join(base_dir, INFO_FILENAME))
 
 
 def df_stimuli_info(base_dir: str = DATA_DIR):
     filename = os.path.join(base_dir, INFO_FILENAME)
     if not os.path.exists(filename):
         print(f"Downloading to {filename}")
-        download_stimuli_info()
+        download_stimuli_info(base_dir)
     return pd.read_parquet(filename)
 
 
@@ -101,15 +108,11 @@ def download_stimuli_images(
     crops: list[list[float]],
     base_dir: str = DATA_DIR,
 ) -> list[str]:
-    # top level dir to save to
-    if not os.path.exists(base_dir):
-        os.mkdir(base_dir)
+    mkdir_if_not_exists(base_dir)
 
     # sub directories (ie val2017, train2017) to save to
     for split in splits:
-        dir = os.path.join(base_dir, split)
-        if not os.path.exists(dir):
-            os.mkdir(dir)
+        mkdir_if_not_exists(os.path.join(base_dir, split))
 
     # links to download
     links = []

@@ -2,7 +2,7 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/nsdget.svg)](https://pypi.org/project/nsdget) 
 
-**nsdget: Natural Scenes Dataset Getter via Python API.**
+**nsdget: Download Natural Scenes Dataset images and fMRI without downloading the entire dataset.**
 
 Quickly get a subset of stimuli (images shown to subject) and corresponding fMRI data from the [Natural Scenes Dataset](https://naturalscenesdataset.org/).
 

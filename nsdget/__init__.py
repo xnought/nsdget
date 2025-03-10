@@ -1,3 +1,4 @@
+from __future__ import annotations
 import wget
 import pandas as pd
 import os
@@ -52,43 +53,7 @@ def coco_image_links(coco_ids: list[int], splits: list[str]):
         yield f"{COCO_BASE_URL}/{split}/{filename}", filename
 
 
-def wget_if_not_already_downloaded(url: str, out: str, skip_if_exists: bool):
-    if not skip_if_exists or not os.path.exists(out):
-        wget.download(url, out=out)
-
-
-def parallel_wget(urls: list[str], outs: list[str], skip_if_exists=True, **tpe_kwargs):
-    from concurrent.futures import ThreadPoolExecutor
-
-    assert len(urls) == len(outs)
-
-    with ThreadPoolExecutor(**tpe_kwargs) as tpe:
-        tpe.map(
-            lambda d: wget_if_not_already_downloaded(d[0], d[1], skip_if_exists),
-            zip(urls, outs),
-        )
-
-
-def download_coco_links(coco_ids: list[int], splits: list[str]):
-    # make sure directories exist
-    for split in splits:
-        dir = os.path.join(DATA_DIR, split)
-        if not os.path.exists(dir):
-            os.mkdir(dir)
-
-    # download to directories
-    links = []
-    relative_paths = []
-    for (link, filename), split in zip(coco_image_links(coco_ids, splits), splits):
-        links.append(link)
-        relative_paths.append(os.path.join(split, filename))
-
-    parallel_wget(links, [os.path.join(DATA_DIR, r) for r in relative_paths])
-
-    return relative_paths
-
-
-def percent_crop_image(im: Image, percent_crop: list[float]) -> Image.Image:
+def percent_crop_image(im: Image.Image, percent_crop: list[float]) -> Image.Image:
     # percent crop is (top, bottom, left, right)
     [percent_top, percent_bottom, percent_left, percent_right] = percent_crop
 
@@ -102,29 +67,106 @@ def percent_crop_image(im: Image, percent_crop: list[float]) -> Image.Image:
     return im.crop([left, top, right, bottom])
 
 
-def open_stimuli_image(
-    coco_id: int, coco_split: str, crop: list[float] = None
-) -> Image.Image:
-    filename = coco_filename(coco_id)
-    path = os.path.join(DATA_DIR, coco_split, filename)
-    assert os.path.exists(path)
-
-    im = Image.open(path).convert("RGB")
-    if crop is not None:
-        # resize based on https://cvnlab.slite.page/p/NKalgWd__F/Experiments
-        # sometimes after crop the image is (426, 426) or (427, 427), so further resize to (425, 425)
-        im = percent_crop_image(im, crop).resize((425, 425), Image.Resampling.LANCZOS)
+def crop_stimuli_image(im: Image.Image, crop: list[float]):
+    # resize based on https://cvnlab.slite.page/p/NKalgWd__F/Experiments
+    # sometimes after crop the image is (426, 426) or (427, 427), so further resize to (425, 425)
+    im = percent_crop_image(im, crop).resize((425, 425), Image.Resampling.LANCZOS)
     return im
 
 
+def wget_if_not_already_downloaded(
+    url: str, out: str, crop: list[float], skip_if_exists: bool
+):
+    if not skip_if_exists or not os.path.exists(out):
+        wget.download(url, out=out)
+        crop_stimuli_image(Image.open(out), crop).save(
+            out
+        )  # override with cropped version
+
+
+def parallel_image_download(
+    urls: list[str],
+    outs: list[str],
+    crops: list[list[float]],
+    skip_if_exists=True,
+    **tpe_kwargs,
+):
+    from concurrent.futures import ThreadPoolExecutor
+
+    assert len(urls) == len(outs) and len(urls) == len(crops)
+
+    with ThreadPoolExecutor(**tpe_kwargs) as tpe:
+        tpe.map(
+            lambda d: wget_if_not_already_downloaded(*d, skip_if_exists),
+            zip(urls, outs, crops),
+        )
+
+
+def download_stimuli_images(
+    coco_ids: list[int],
+    splits: list[str],
+    crops: list[list[float]],
+    save_to_dir: str = DATA_DIR,
+) -> list[str]:
+    # top level dir to save to
+    if not os.path.exists(save_to_dir):
+        os.mkdir(save_to_dir)
+
+    # sub directories (ie val2017, train2017) to save to
+    for split in splits:
+        dir = os.path.join(save_to_dir, split)
+        if not os.path.exists(dir):
+            os.mkdir(dir)
+
+    # links to download
+    links = []
+    relative_paths = []
+    for (link, filename), split in zip(coco_image_links(coco_ids, splits), splits):
+        links.append(link)
+        relative_paths.append(os.path.join(split, filename))
+
+    # download on max possible threads in parallel
+    parallel_image_download(
+        links, [os.path.join(save_to_dir, r) for r in relative_paths], crops
+    )
+
+    return relative_paths
+
+
+def df_download_stimuli_images(df: pd.DataFrame, save_to_dir=DATA_DIR) -> list[str]:
+    assert (
+        "cocoId" in df.columns and "cocoSplit" in df.columns and "cropBox" in df.columns
+    )
+    return download_stimuli_images(
+        coco_ids=df["cocoId"],
+        splits=df["cocoSplit"],
+        crops=df["cropBox"],
+        save_to_dir=save_to_dir,
+    )
+
+
+def open_stimuli_image(
+    coco_id: int, coco_split: str, base_dir: str = DATA_DIR
+) -> Image.Image:
+    filename = coco_filename(coco_id)
+    path = os.path.join(base_dir, coco_split, filename)
+    assert os.path.exists(path)
+
+    im = Image.open(path).convert("RGB")
+    return im
+
+
+def df_row_open_stimuli_image(row: pd.DataFrame, base_dir: str = DATA_DIR):
+    return open_stimuli_image(
+        coco_id=row["cocoId"], coco_split=row["cocoSplit"], base_dir=base_dir
+    )
+
+
 def main():
-    # download_stimuli_info()
-    # download_images()
     df = df_stimuli_info()
-    sub = df[df["shared1000"] == True]
-    imgs = download_coco_links(sub["cocoId"], sub["cocoSplit"])
-    row = sub.iloc[0]
-    im = open_stimuli_image(row["cocoId"], row["cocoSplit"], row["cropBox"])
+    sub = df[df["shared1000"] == True].copy()
+    sub["img"] = df_download_stimuli_images(sub)
+    Image.open(os.path.join(DATA_DIR, sub.iloc[0]["img"])).show()
 
 
 if __name__ == "__main__":

@@ -88,7 +88,7 @@ def download_coco_links(coco_ids: list[int], splits: list[str]):
     return relative_paths
 
 
-def percent_crop_image(im: Image, percent_crop: list[float]):
+def percent_crop_image(im: Image, percent_crop: list[float]) -> Image.Image:
     # percent crop is (top, bottom, left, right)
     [percent_top, percent_bottom, percent_left, percent_right] = percent_crop
 
@@ -101,14 +101,18 @@ def percent_crop_image(im: Image, percent_crop: list[float]):
     return im.crop([left, top, right, bottom])
 
 
-def load_image(coco_id: int, coco_split: str, crop: list[float] = None) -> Image:
+def load_nsd_coco_image(
+    coco_id: int, coco_split: str, crop: list[float] = None
+) -> Image.Image:
     filename = coco_filename(coco_id)
     path = os.path.join(DATA_DIR, coco_split, filename)
     assert os.path.exists(path)
 
     im = Image.open(path).convert("RGB")
     if crop is not None:
-        im = percent_crop_image(im, crop)
+        # resize based on https://cvnlab.slite.page/p/NKalgWd__F/Experiments
+        # sometimes after crop the image is (426, 426) or (427, 427), so further resize to (425, 425)
+        im = percent_crop_image(im, crop).resize((425, 425), Image.Resampling.LANCZOS)
     return im
 
 
@@ -119,7 +123,7 @@ def main():
     sub = df[df["shared1000"] == True]
     imgs = download_coco_links(sub["cocoId"], sub["cocoSplit"])
     row = sub.iloc[0]
-    load_image(row["cocoId"], row["cocoSplit"], row["cropBox"]).show()
+    im = load_nsd_coco_image(row["cocoId"], row["cocoSplit"], row["cropBox"])
 
 
 if __name__ == "__main__":

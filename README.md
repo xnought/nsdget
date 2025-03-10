@@ -1,4 +1,4 @@
-# nsdget
+# 🧠🏞️ nsdget
 
 **nsdget: Natural Scenes Dataset Getter via Python API.**
 

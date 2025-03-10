@@ -155,9 +155,28 @@ def df_row_open_stimuli_image(row: pd.DataFrame, base_dir: str = DATA_DIR):
         coco_id=row["cocoId"], coco_split=row["cocoSplit"], base_dir=base_dir
     )
 
-def download_betas_given_session(subject: int, session: int):
-    wget.download()
-    pass
+
+def str_subject(subject: int):
+    return f"sub{left_pad_zeros(subject, pad_to=2)}"
+
+
+def str_session(session: int):
+    return f"session{left_pad_zeros(session, pad_to=2)}"
+
+
+def download_betas_given_session(
+    subject: int,
+    session: int,
+    betas_type: str = "fsaverage/betas_fithrf_GLMdenoise_RR",
+    base_dir: str = DATA_DIR,
+):
+    for h in ["lh", "rh"]:
+        # url = f"{BASE_URL}/nsddata_betas/ppdata/{str_subject(subject)}/{betas_type}/{h}.betas_{str_session(session)}.mgh"
+        # print(url)
+        # wget.download(url, out=base_dir)
+        print(
+            f"{BASE_URL}/nsddata_betas/ppdata/subj01/fsaverage/betas_fithrf_GLMdenoise_RR/lh.betas_session01.mgh"
+        )
 
 
 def main():
@@ -165,6 +184,7 @@ def main():
     # sub = df[df["shared1000"] == True].copy()
     # sub["img"] = df_download_stimuli_images(sub)
     # Image.open(sub.iloc[0]["img"]).show()
+    download_betas_given_session(1, 1)
 
 
 if __name__ == "__main__":

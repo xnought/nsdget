@@ -98,10 +98,11 @@ def percent_crop_image(im: Image, percent_crop: list[float]) -> Image.Image:
     top = int(height * percent_top)
     right = int(width * (1 - percent_right))
     bottom = int(height * (1 - percent_bottom))
+
     return im.crop([left, top, right, bottom])
 
 
-def load_nsd_coco_image(
+def open_stimuli_image(
     coco_id: int, coco_split: str, crop: list[float] = None
 ) -> Image.Image:
     filename = coco_filename(coco_id)
@@ -123,7 +124,7 @@ def main():
     sub = df[df["shared1000"] == True]
     imgs = download_coco_links(sub["cocoId"], sub["cocoSplit"])
     row = sub.iloc[0]
-    im = load_nsd_coco_image(row["cocoId"], row["cocoSplit"], row["cropBox"])
+    im = open_stimuli_image(row["cocoId"], row["cocoSplit"], row["cropBox"])
 
 
 if __name__ == "__main__":

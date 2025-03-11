@@ -5,7 +5,12 @@ description = "Python API to easily download stimuli and fMRI data from Natural 
 readme = "README.md"
 authors = [{ name = "xnought", email = "drbertucci@hotmail.com" }]
 requires-python = ">=3.10"
-dependencies = ["pillow>=11.1.0", "wget>=3.2"]
+dependencies = [
+    "nibabel>=5.3.2",
+    "numpy>=2.2.3",
+    "pillow>=11.1.0",
+    "wget>=3.2",
+]
 
 [project.scripts]
 nsdget = "nsdget:main"
@@ -18,7 +23,6 @@ build-backend = "hatchling.build"
 dev = [
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.1",
-    "numpy>=2.2.3",
     "pandas>=2.2.3",
     "pyarrow>=19.0.1",
 ]

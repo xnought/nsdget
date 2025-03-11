@@ -3,12 +3,30 @@ import wget
 import pandas as pd
 import os
 from PIL import Image
+import nibabel as nib
+import numpy as np
 
 BASE_URL = "https://natural-scenes-dataset.s3.amazonaws.com"
 COCO_BASE_URL = "http://images.cocodataset.org"
 DATA_DIR = os.path.join(".", "data")
 INFO_FILENAME = "nsd_stim_info_merged.parquet"
 IMAGES_FILENAME = "nsd_stimuli.hdf5"
+
+# took from https://github.com/clane9/NSD-Flat/
+NUM_SUBS = 8
+NUM_TRIALS = 30_000
+MAX_SESSIONS = 40
+NUM_SESSIONS = {
+    "subj01": 40,
+    "subj02": 40,
+    "subj03": 32,
+    "subj04": 30,
+    "subj05": 40,
+    "subj06": 32,
+    "subj07": 40,
+    "subj08": 30,
+}
+TRIALS_PER_SESSION = NUM_TRIALS // MAX_SESSIONS
 
 
 def mkdir_if_not_exists(base_dir: str):
@@ -157,26 +175,53 @@ def df_row_open_stimuli_image(row: pd.DataFrame, base_dir: str = DATA_DIR):
 
 
 def str_subject(subject: int):
-    return f"sub{left_pad_zeros(subject, pad_to=2)}"
+    return f"subj{left_pad_zeros(subject, pad_to=2)}"
 
 
 def str_session(session: int):
     return f"session{left_pad_zeros(session, pad_to=2)}"
 
 
-def download_betas_given_session(
+# took from https://github.com/clane9/NSD-Flat/
+def download_betas_given_subj_session(
     subject: int,
     session: int,
     betas_type: str = "fsaverage/betas_fithrf_GLMdenoise_RR",
     base_dir: str = DATA_DIR,
-):
+) -> dict[str, str]:
+    file_paths = []
     for h in ["lh", "rh"]:
-        # url = f"{BASE_URL}/nsddata_betas/ppdata/{str_subject(subject)}/{betas_type}/{h}.betas_{str_session(session)}.mgh"
-        # print(url)
-        # wget.download(url, out=base_dir)
-        print(
-            f"{BASE_URL}/nsddata_betas/ppdata/subj01/fsaverage/betas_fithrf_GLMdenoise_RR/lh.betas_session01.mgh"
-        )
+        filename = f"{h}.betas_{str_session(session)}.mgh"
+        full_path = os.path.join(base_dir, filename)
+        url = f"{BASE_URL}/nsddata_betas/ppdata/{str_subject(subject)}/{betas_type}/{filename}"
+        if not os.path.exists(full_path):
+            wget.download(url, out=base_dir)
+        file_paths.append(full_path)
+    return file_paths
+
+
+# took from https://github.com/clane9/NSD-Flat/
+def load_betas_given_subj_session(
+    subject: int,
+    session: int,
+    betas_type: str = "fsaverage/betas_fithrf_GLMdenoise_RR",
+    base_dir: str = DATA_DIR,
+    dtype=np.float32,
+):
+    file_paths = download_betas_given_subj_session(
+        subject, session, betas_type, base_dir
+    )
+
+    hemispheres = []
+    for fp in file_paths:
+        img = nib.load(fp)
+        fdata = img.get_fdata()  # (BETAS, 1, 1, TRIALS)
+        fdata = np.squeeze(fdata)  # (BETAS, TRIALS)
+        fdata = fdata.T  # (TRIALS, BETAS)
+        hemispheres.append(np.ascontiguousarray(fdata))
+
+    # stitch together both hemispheres
+    return np.concat(hemispheres, axis=1, dtype=dtype)
 
 
 def main():
@@ -184,7 +229,8 @@ def main():
     # sub = df[df["shared1000"] == True].copy()
     # sub["img"] = df_download_stimuli_images(sub)
     # Image.open(sub.iloc[0]["img"]).show()
-    download_betas_given_session(1, 1)
+    out = load_betas_given_subj_session(1, 1)
+    print(out[:10])
 
 
 if __name__ == "__main__":

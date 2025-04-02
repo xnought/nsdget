@@ -32,7 +32,7 @@ from nsdget import nsd_betas_images_trials, nsd_coco_image, nsd_single_trial_bet
 
 # download and use data
 df: pd.DataFrame = nsd_betas_images_trials(save_to="./nsdata/")
-betas: np.ndarray = sd_single_trial_betas(df.iloc[0]) # 1.8mm res fmri single trial from NSD for the given row (index 0 here) 
+betas: np.ndarray = nsd_single_trial_betas(df.iloc[0]) # 1.8mm res fmri single trial from NSD for the given row (index 0 here) 
 image0: PIL.Image = nsd_coco_image(df.iloc[0]) # crops how NSD did and gives you the PIL image (can easily be converted to numpy too)
 ```
 

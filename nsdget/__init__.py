@@ -53,15 +53,8 @@ def df_stimuli_info(base_dir: str = DATA_DIR):
     return pd.read_parquet(filename)
 
 
-def left_pad_zeros(number: int, pad_to=12):
-    number_as_str = str(number)
-    num_zeros = pad_to - len(number_as_str)
-    assert num_zeros >= 0
-    return "0" * num_zeros + number_as_str
-
-
 def coco_filename(id: int):
-    return f"{left_pad_zeros(id, pad_to=12)}.jpg"
+    return f"{str(id).zfill(12)}.jpg"
 
 
 def coco_image_links(coco_ids: list[int], splits: list[str]):
@@ -92,14 +85,10 @@ def crop_stimuli_image(im: Image.Image, crop: list[float]):
     return im
 
 
-def wget_if_not_already_downloaded(
-    url: str, out: str, crop: list[float], skip_if_exists: bool
-):
+def wget_if_not_already_downloaded(url: str, out: str, crop: list[float], skip_if_exists: bool):
     if not skip_if_exists or not os.path.exists(out):
         wget.download(url, out=out)
-        crop_stimuli_image(Image.open(out), crop).save(
-            out
-        )  # override with cropped version
+        crop_stimuli_image(Image.open(out), crop).save(out)  # override with cropped version
 
 
 def parallel_image_download(
@@ -146,9 +135,7 @@ def download_stimuli_images(
 
 
 def df_download_stimuli_images(df: pd.DataFrame, base_dir=DATA_DIR) -> list[str]:
-    assert (
-        "cocoId" in df.columns and "cocoSplit" in df.columns and "cropBox" in df.columns
-    )
+    assert "cocoId" in df.columns and "cocoSplit" in df.columns and "cropBox" in df.columns
     return download_stimuli_images(
         coco_ids=df["cocoId"],
         splits=df["cocoSplit"],
@@ -157,9 +144,7 @@ def df_download_stimuli_images(df: pd.DataFrame, base_dir=DATA_DIR) -> list[str]
     )
 
 
-def open_stimuli_image(
-    coco_id: int, coco_split: str, base_dir: str = DATA_DIR
-) -> Image.Image:
+def open_stimuli_image(coco_id: int, coco_split: str, base_dir: str = DATA_DIR) -> Image.Image:
     filename = coco_filename(coco_id)
     path = os.path.join(base_dir, coco_split, filename)
     assert os.path.exists(path)
@@ -169,17 +154,15 @@ def open_stimuli_image(
 
 
 def df_row_open_stimuli_image(row: pd.DataFrame, base_dir: str = DATA_DIR):
-    return open_stimuli_image(
-        coco_id=row["cocoId"], coco_split=row["cocoSplit"], base_dir=base_dir
-    )
+    return open_stimuli_image(coco_id=row["cocoId"], coco_split=row["cocoSplit"], base_dir=base_dir)
 
 
 def str_subject(subject: int):
-    return f"subj{left_pad_zeros(subject, pad_to=2)}"
+    return f"subj{str(subject).zfill(2)}"
 
 
 def str_session(session: int):
-    return f"session{left_pad_zeros(session, pad_to=2)}"
+    return f"session{str(session).zfill(2)}"
 
 
 # took from https://github.com/clane9/NSD-Flat/
@@ -208,29 +191,73 @@ def load_betas_given_subj_session(
     base_dir: str = DATA_DIR,
     dtype=np.float32,
 ):
-    file_paths = download_betas_given_subj_session(
-        subject, session, betas_type, base_dir
-    )
+    file_paths = download_betas_given_subj_session(subject, session, betas_type, base_dir)
 
     hemispheres = []
     for fp in file_paths:
         img = nib.load(fp)
-        fdata = img.get_fdata()  # (BETAS, 1, 1, TRIALS)
+        print(img.header.get_data_shape())
+        fdata: np.ndarray = img.get_fdata()  # (BETAS, 1, 1, TRIALS)
         fdata = np.squeeze(fdata)  # (BETAS, TRIALS)
-        fdata = fdata.T  # (TRIALS, BETAS)
-        hemispheres.append(np.ascontiguousarray(fdata))
+        fdata = np.ascontiguousarray(fdata.T)  # (TRIALS, BETAS)
+        hemispheres.append(fdata)
+        print(fdata.shape)
 
     # stitch together both hemispheres
-    return np.concat(hemispheres, axis=1, dtype=dtype)
+    return np.concat(hemispheres, axis=1, dtype=dtype)  # (TRIALS, BETAS*2)
+
+
+def download_vol_betas_subject_session(subject_id: str, session_id: str, base_dir: str = os.path.join(DATA_DIR, "betas")):
+    subject_dir = os.path.join(base_dir, subject_id)
+    os.makedirs(subject_dir, exist_ok=True)
+
+    filename = f"betas_{session_id}.nii.gz"
+    download_to = os.path.join(base_dir, subject_id, filename)
+    if os.path.exists(download_to):
+        print(f"Already downloaded at {download_to}")
+        return download_to
+
+    print(f"Downloading to {download_to}")
+    link = f"nsddata_betas/ppdata/{subject_id}/func1pt8mm/betas_fithrf_GLMdenoise_RR/{filename}"
+    download_nsd(link, download_to)
+
+    return download_to
+
+
+def load_vol_betas_subject_session(subject_id: str, session_id: str, base_dir: str = DATA_DIR):
+    filename = download_vol_betas_subject_session(subject_id, session_id, base_dir)
+    d = nib.load(filename)
+    voxels = d.get_fdata()
+    return voxels
+
+
+def download_all_session_betas(subject_id: str, base_dir: str = os.path.join(DATA_DIR, "betas")):
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor() as tpe:
+        tpe.map(lambda i: download_vol_betas_subject_session(subject_id, str_session(i), base_dir), range(1, NUM_SESSIONS[subject_id] + 1))
 
 
 def main():
     # df = df_stimuli_info()
-    # sub = df[df["shared1000"] == True].copy()
+    # print(df.columns)
+    # sub = df[df["shared1000"]].copy()
     # sub["img"] = df_download_stimuli_images(sub)
     # Image.open(sub.iloc[0]["img"]).show()
-    out = load_betas_given_subj_session(1, 1)
-    print(out[:10])
+    session = 1
+    subject = 1
+
+    # betas = load_vol_betas_subject_session(session_id=str_session(session), subject_id=str_subject(subject))
+    # print(betas.shape)
+
+    # for subject_idx in range(NUM_SUBS):
+    #     subject_id = str_subject(subject_idx + 1)  # since subjects are 1 indexed from 1 to 8
+    #     for session_idx in range(NUM_SESSIONS[subject_id]):
+    #         session_id = str_session(session_idx + 1)
+    #         print(subject_id, session_id, "Downloading")
+    #         download_vol_betas_subject_session(subject_id, session_id)
+
+    download_all_session_betas("subj01")
 
 
 if __name__ == "__main__":

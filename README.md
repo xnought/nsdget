@@ -26,6 +26,7 @@ pip install nsdget
 
 Then, to download the betas for all 8 subjects and 73k coco images do
 
+
 ```python
 from nsdget import nsd_betas_images_trials, nsd_coco_image, nsd_single_trial_betas
 
@@ -34,6 +35,8 @@ df: pd.DataFrame = nsd_betas_images_trials(save_to="./nsdata/")
 betas: np.ndarray = sd_single_trial_betas(df.iloc[0]) # 1.8mm res fmri single trial from NSD for the given row (index 0 here) 
 image0: PIL.Image = nsd_coco_image(df.iloc[0]) # crops how NSD did and gives you the PIL image (can easily be converted to numpy too)
 ```
+
+Example above ran in [`example.ipynb`](./notebooks/example.ipynb).
 
 Note that download happens only once. After the first slow run, subsequent runs will be very fast.
 

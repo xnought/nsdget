@@ -160,37 +160,6 @@ def df_row_open_stimuli_image(row: pd.DataFrame, base_dir: str = DATA_DIR):
     return open_stimuli_image(coco_id=row["cocoId"], coco_split=row["cocoSplit"], base_dir=base_dir)
 
 
-def drop_subject_rep_cols(df: pd.DataFrame):
-    df.drop([f"subject{subject_idx + 1}_rep{rep_id}" for subject_idx in range(NUM_SUBS) for rep_id in range(3)], inplace=True, axis=1)
-
-
-def drop_subject_cols(df: pd.DataFrame):
-    df.drop([f"subject{subject_idx + 1}" for subject_idx in range(NUM_SUBS)], inplace=True, axis=1)
-
-
-# copied directly (with some renaming) from https://github.com/clane9/NSD-Flat/blob/main/convert_nsd_annotations.py#L277
-def unroll_stimuli_trials(stim_info: pd.DataFrame) -> pd.DataFrame:
-    long_stim_info = []
-
-    for ii in tqdm(range(len(stim_info))):
-        row = stim_info.iloc[ii].to_dict()
-        for subject_idx in range(NUM_SUBS):
-            subject_id = subject_idx + 1
-            for rep_id in range(NUM_REP):
-                trial_id = row[f"subject{subject_id}_rep{rep_id}"]
-                if trial_id > 0:
-                    long_row = {"subjectId": subject_id, "trialId": trial_id, **row}
-                    long_stim_info.append(long_row)
-
-    long_stim_info = pd.DataFrame.from_records(long_stim_info, index=["subjectId", "trialId"])
-    long_stim_info = long_stim_info.sort_index()
-
-    drop_subject_rep_cols(long_stim_info)
-    drop_subject_cols(long_stim_info)
-
-    return long_stim_info
-
-
 def str_subject(subject: int):
     return f"subj{str(subject).zfill(2)}"
 
@@ -248,7 +217,6 @@ def download_vol_betas_subject_session(subject_id: str, session_id: str, base_di
     filename = f"betas_{session_id}.nii.gz"
     download_to = os.path.join(base_dir, subject_id, filename)
     if os.path.exists(download_to):
-        print(f"Already downloaded at {download_to}")
         return download_to
 
     print(f"Downloading to {download_to}")
@@ -276,25 +244,135 @@ def get_shape_data(filename):
     return nib.load(filename).header.get_data_shape()
 
 
-def main():
-    # df = df_stimuli_info()
-    # print(df.columns)
-    # sub = df[df["shared1000"]].copy()
-    # sub["img"] = df_download_stimuli_images(sub)
-    # Image.open(sub.iloc[0]["img"]).show()
-    session = 1
-    subject = 1
+def drop_subject_rep_cols(df: pd.DataFrame):
+    df.drop([f"subject{subject_idx + 1}_rep{rep_id}" for subject_idx in range(NUM_SUBS) for rep_id in range(3)], inplace=True, axis=1)
 
-    # betas = load_vol_betas_subject_session(session_id=str_session(session), subject_id=str_subject(subject))
-    # print(betas.shape)
 
-    for subject_idx in range(NUM_SUBS):
-        subject_id = str_subject(subject_idx + 1)  # since subjects are 1 indexed from 1 to 8
-        download_all_session_betas(subject_id)  # download all at once for speed
+def drop_subject_cols(df: pd.DataFrame):
+    df.drop([f"subject{subject_idx + 1}" for subject_idx in range(NUM_SUBS)], inplace=True, axis=1)
+
+
+# copied directly (with some renaming) from https://github.com/clane9/NSD-Flat/blob/main/convert_nsd_annotations.py#L277
+def unroll_stimuli_trials(stim_info: pd.DataFrame) -> pd.DataFrame:
+    long_stim_info = []
+
+    for i in tqdm(range(len(stim_info))):
+        row = stim_info.iloc[i].to_dict()
+        for subject_idx in range(NUM_SUBS):
+            subject_id = subject_idx + 1
+            for rep_id in range(NUM_REP):
+                trial_id = row[f"subject{subject_id}_rep{rep_id}"]
+                if trial_id > 0:
+                    long_row = {"subjectId": subject_id, "trialId": trial_id, **row}
+                    long_stim_info.append(long_row)
+
+    long_stim_info = pd.DataFrame.from_records(long_stim_info, index=["subjectId", "trialId"])
+    long_stim_info = long_stim_info.sort_index()
+
+    drop_subject_rep_cols(long_stim_info)
+    drop_subject_cols(long_stim_info)
+
+    return long_stim_info
+
+
+def add_session_and_local_trial_info(df: pd.DataFrame):
+    df["i"] = range(len(df))
+    session_id = [None] * len(df)
+    session_trial_id = [None] * len(df)
+
+    for subject_idx in tqdm(range(NUM_SUBS)):
+        subject_id = str_subject(subject_idx + 1)
         for session_idx in range(NUM_SESSIONS[subject_id]):
-            session_id = str_session(session_idx + 1)
-            # for trial_idx in range(NUM_TRIALS):
-            #     print(trial_idx)
+            for trial_idx in range(TRIALS_PER_SESSION):
+                global_trial_idx = session_idx * TRIALS_PER_SESSION + trial_idx
+                df_idx = df.loc[subject_idx + 1, global_trial_idx + 1]["i"]
+                session_id[df_idx] = session_idx + 1
+                session_trial_id[df_idx] = trial_idx + 1
+    df.drop("i", axis=1, inplace=True)
+    df["sessionId"] = session_id
+    df["sessionTrialId"] = session_id
+
+
+def mask_unran_trials(df: pd.DataFrame):
+    df["i"] = range(len(df))
+    mask = [False] * len(df)
+
+    for subject_idx in tqdm(range(NUM_SUBS)):
+        subject_id = str_subject(subject_idx + 1)
+        for session_idx in range(NUM_SESSIONS[subject_id]):
+            for trial_idx in range(TRIALS_PER_SESSION):
+                global_trial_idx = session_idx * TRIALS_PER_SESSION + trial_idx
+                mask[df.loc[subject_idx + 1, global_trial_idx + 1]["i"]] = True
+
+    df.drop("i", axis=1, inplace=True)
+    return mask
+
+
+def df_trials(base_dir=DATA_DIR):
+    df = unroll_stimuli_trials(df_stimuli_info(base_dir))
+    mask = mask_unran_trials(df)
+    df = df[mask].copy()
+    add_session_and_local_trial_info(df)
+    df.reset_index(inplace=True)
+    return df
+
+
+def save_df_trials():
+    df = df_trials()
+    print(len(df))
+    print("Exporting to parquet")
+    df.to_parquet(os.path.join(DATA_DIR, "trials.parquet"))
+
+
+def undo_betas_compression(img) -> np.ndarray:
+    """
+    On https://cvnlab.slite.page/p/6CusMRYfk0/Functional-data-NSD they say
+    that you need to convert back to float, then divide by 300
+    """
+    return img.get_fdata(dtype=np.float32) / 300.0
+
+
+def load_session_betas(subject_id: str, session_id: str, session_trial_id: int, base_dir: str):
+    filename = os.path.join(base_dir, subject_id, f"betas_{session_id}.nii.gz")
+    img = nib.load(filename)
+    trial_data = img.slicer[..., session_trial_id - 1]
+    trial_data_float = undo_betas_compression(trial_data)
+    return trial_data_float
+
+
+def load_betas_from_row(row: pd.Series, base_dir=BETAS_DIR):
+    cols = row.keys()
+    assert "subjectId" in cols
+    assert "sessionId" in cols
+    assert "sessionTrialId" in cols
+
+    subject_id = str_subject(row["subjectId"])  # between [1, 8]
+    session_id = str_session(row["sessionId"])  # between [1, max_sessions for the subject]
+    session_trial_id = row["sessionId"]  # local trial id between [1, 750]
+    d = load_session_betas(subject_id, session_id, session_trial_id, base_dir)
+    return d
+
+
+def load_coco_image_from_row(row: pd.Series, base_dir=DATA_DIR):
+    cols = row.keys()
+    assert "cocoId" in cols
+    assert "cocoSplit" in cols
+
+    coco_id = row["cocoId"]
+    coco_split = row["cocoSplit"]
+
+    return open_stimuli_image(coco_id, coco_split, base_dir)
+
+
+def main():
+    trials = os.path.join(DATA_DIR, "trials.parquet")
+    df = pd.read_parquet(trials) if os.path.exists(trials) else df_trials()
+    df.to_parquet(trials)
+    print(df.head())
+    b = load_betas_from_row(df.iloc[0])
+    print(b.shape)
+    img = load_coco_image_from_row(df.iloc[0])
+    img.show()
 
 
 if __name__ == "__main__":

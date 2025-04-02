@@ -10,9 +10,9 @@ Not affiliated with Natural Scenes Dataset. I just wanted an easier and quicker 
 
 **Roadmap**
 
-- [ ] Create a dataframe with every trial
-- [ ] Have the dataframe point to images downloaded
-- [ ] Create way to get betas given dataframe row
+- [x] Create a dataframe with every trial
+- [x] Have the dataframe point to images downloaded
+- [x] Create way to get betas given dataframe row
 
 ## Usage
 

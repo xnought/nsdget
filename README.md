@@ -2,15 +2,15 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/nsdget.svg)](https://pypi.org/project/nsdget) 
 
-**nsdget: Download Natural Scenes Dataset images and fMRI without downloading the entire dataset.**
+**nsdget: easily download and use the single trial betas 1.8mm and coco images from the Natural Scenes Dataset**
 
-Quickly get a subset of stimuli (images shown to subject) and corresponding fMRI data from the [Natural Scenes Dataset](https://naturalscenesdataset.org/).
+Note: I'm not affiliated with [Natural Scenes Dataset](https://naturalscenesdataset.org/). I just wanted an easier and quicker way to download the data I needed from them (hence this package).
 
-Not affiliated with Natural Scenes Dataset. I just wanted an easier and quicker way to download the data I needed from them (hence this package).
+Shoutout to https://github.com/clane9/NSD-Flat/ since I reused some of the functions from there. Thank you!
 
 ## Usage
 
-To use the data, first submit a form to the NSD people: [NSD Data Access Agreement](https://docs.google.com/forms/d/e/1FAIpQLSduTPeZo54uEMKD-ihXmRhx0hBDdLHNsVyeo_kCb8qbyAkXuQ/viewform?usp=send_form). Then,
+To use the data, please fill out the [NSD Data Access Agreement](https://docs.google.com/forms/d/e/1FAIpQLSduTPeZo54uEMKD-ihXmRhx0hBDdLHNsVyeo_kCb8qbyAkXuQ/viewform?usp=send_form) first. Then download the `nsdget` python package:
 
 **Install**
 
@@ -24,9 +24,7 @@ or
 pip install nsdget
 ```
 
-**API**
-
-Simple API, all there is:
+Then, to donwnload the betas for all 8 subjects and 73k coco images do
 
 ```python
 from nsdget import nsd_betas_images_trials, nsd_coco_image, nsd_single_trial_betas
@@ -36,6 +34,8 @@ df: pd.DataFrame = nsd_betas_images_trials(save_to="./nsdata/")
 betas: np.ndarray = sd_single_trial_betas(df.iloc[0]) # 1.8mm res fmri single trial from NSD for the given row (index 0 here) 
 image0: PIL.Image = nsd_coco_image(df.iloc[0]) # crops how NSD did and gives you the PIL image (can easily be converted to numpy too)
 ```
+
+Note that download happens only once. After the first slow run, subsequent runs will be very fast.
 
 ## Development
 

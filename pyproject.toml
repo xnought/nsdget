@@ -1,7 +1,7 @@
 [project]
 name = "nsdget"
-version = "0.0.1"
-description = "Python API to easily download stimuli and fMRI data from Natural Scenes Dataset."
+version = "0.0.2"
+description = "Python API to easily download stimuli and fMRI betas from Natural Scenes Dataset."
 readme = "README.md"
 authors = [{ name = "xnought", email = "drbertucci@hotmail.com" }]
 requires-python = ">=3.10"

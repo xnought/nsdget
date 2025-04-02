@@ -39,9 +39,18 @@ image0: PIL.Image = nsd_coco_image(df.iloc[0]) # crops how NSD did and gives you
 
 ## Development
 
+**Dev run**
+
 ```bash
 uv sync
-uv run nsdget
+make run
+```
+
+**Deployment PyPi**
+
+```bash
+uv sync
+TOKEN=... make publish # insert your PyPi token where ...
 ```
 
 ## References

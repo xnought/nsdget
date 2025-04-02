@@ -1,18 +1,27 @@
 from __future__ import annotations
-import wget
 import pandas as pd
 import os
 from PIL import Image
 import nibabel as nib
 import numpy as np
 from tqdm import tqdm
+from urllib.request import urlretrieve
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable
+
+from colorama import init as colorama_init
+from colorama import Fore
+from colorama import Style
+
+colorama_init()
 
 BASE_URL = "https://natural-scenes-dataset.s3.amazonaws.com"
 COCO_BASE_URL = "http://images.cocodataset.org"
-DATA_DIR = os.path.join(".", "data")
+DATA_DIR = os.path.join(".", "nsdata")
 BETAS_DIR = os.path.join(DATA_DIR, "betas")
 INFO_FILENAME = "nsd_stim_info_merged.parquet"
 IMAGES_FILENAME = "nsd_stimuli.hdf5"
+TRIALS_FILENAME = "trials.parquet"
 
 # took from https://github.com/clane9/NSD-Flat/
 NUM_REP = 3  # image repeated at most 3 times per subject
@@ -32,27 +41,43 @@ NUM_SESSIONS = {
 TRIALS_PER_SESSION = NUM_TRIALS // MAX_SESSIONS
 
 
-def mkdir_if_not_exists(base_dir: str):
-    if not os.path.exists(base_dir):
-        os.mkdir(base_dir)
+def parallel_map(func: Callable, args_per_call: list, **tpe_kwargs):
+    with ThreadPoolExecutor(**tpe_kwargs) as tpe:
+        futures = [tpe.submit(func, *args) for args in args_per_call]
+
+        # Initialize progress bar
+        with tqdm(total=len(futures)) as pbar:
+            # Update progress as each future completes
+            for _ in as_completed(futures):
+                pbar.update(1)
+
+
+def wget(url: str, filename: str):
+    urlretrieve(url, filename)
 
 
 def download_nsd(filepath: str, outfile: str):
-    wget.download(f"{BASE_URL}/{filepath}", out=outfile)
+    wget(f"{BASE_URL}/{filepath}", outfile)
 
 
-def download_stimuli_info(base_dir: str = DATA_DIR):
-    mkdir_if_not_exists(base_dir)
+def assert_data_dir():
+    assert os.path.exists(DATA_DIR), "Data dir must be set"
+
+
+def download_stimuli_info():
+    assert_data_dir()
 
     df = pd.read_pickle(f"{BASE_URL}/nsddata/experiments/nsd/nsd_stim_info_merged.pkl")
-    df.to_parquet(os.path.join(base_dir, INFO_FILENAME))
+    df.to_parquet(os.path.join(DATA_DIR, INFO_FILENAME))
 
 
-def df_stimuli_info(base_dir: str = DATA_DIR):
-    filename = os.path.join(base_dir, INFO_FILENAME)
+def df_stimuli_info():
+    assert_data_dir()
+
+    filename = os.path.join(DATA_DIR, INFO_FILENAME)
     if not os.path.exists(filename):
         print(f"Downloading to {filename}")
-        download_stimuli_info(base_dir)
+        download_stimuli_info()
     return pd.read_parquet(filename)
 
 
@@ -90,7 +115,7 @@ def crop_stimuli_image(im: Image.Image, crop: list[float]):
 
 def wget_if_not_already_downloaded(url: str, out: str, crop: list[float], skip_if_exists: bool):
     if not skip_if_exists or not os.path.exists(out):
-        wget.download(url, out=out)
+        wget(url, out)
         crop_stimuli_image(Image.open(out), crop).save(out)  # override with cropped version
 
 
@@ -101,35 +126,27 @@ def parallel_image_download(
     skip_if_exists=True,
     **tpe_kwargs,
 ):
-    from concurrent.futures import ThreadPoolExecutor
-
     assert len(urls) == len(outs) and len(urls) == len(crops)
-
-    with ThreadPoolExecutor(**tpe_kwargs) as tpe:
-        tpe.map(
-            lambda d: wget_if_not_already_downloaded(*d, skip_if_exists),
-            zip(urls, outs, crops),
-        )
+    parallel_map(wget_if_not_already_downloaded, [(*d, skip_if_exists) for d in zip(urls, outs, crops)], **tpe_kwargs)
 
 
 def download_stimuli_images(
     coco_ids: list[int],
     splits: list[str],
     crops: list[list[float]],
-    base_dir: str = DATA_DIR,
 ) -> list[str]:
-    mkdir_if_not_exists(base_dir)
+    assert_data_dir()
 
     # sub directories (ie val2017, train2017) to save to
     for split in splits:
-        mkdir_if_not_exists(os.path.join(base_dir, split))
+        os.makedirs(os.path.join(DATA_DIR, split), exist_ok=True)
 
     # links to download
     links = []
     paths = []
     for (link, filename), split in zip(coco_image_links(coco_ids, splits), splits):
         links.append(link)
-        paths.append(os.path.join(base_dir, split, filename))
+        paths.append(os.path.join(DATA_DIR, split, filename))
 
     # download on max possible threads in parallel
     parallel_image_download(links, paths, crops)
@@ -137,27 +154,26 @@ def download_stimuli_images(
     return paths
 
 
-def df_download_stimuli_images(df: pd.DataFrame, base_dir=DATA_DIR) -> list[str]:
+def df_download_stimuli_images(df: pd.DataFrame) -> list[str]:
     assert "cocoId" in df.columns and "cocoSplit" in df.columns and "cropBox" in df.columns
     return download_stimuli_images(
         coco_ids=df["cocoId"],
         splits=df["cocoSplit"],
         crops=df["cropBox"],
-        base_dir=base_dir,
     )
 
 
-def open_stimuli_image(coco_id: int, coco_split: str, base_dir: str = DATA_DIR) -> Image.Image:
+def open_stimuli_image(coco_id: int, coco_split: str) -> Image.Image:
     filename = coco_filename(coco_id)
-    path = os.path.join(base_dir, coco_split, filename)
+    path = os.path.join(DATA_DIR, coco_split, filename)
     assert os.path.exists(path)
 
     im = Image.open(path).convert("RGB")
     return im
 
 
-def df_row_open_stimuli_image(row: pd.DataFrame, base_dir: str = DATA_DIR):
-    return open_stimuli_image(coco_id=row["cocoId"], coco_split=row["cocoSplit"], base_dir=base_dir)
+def df_row_open_stimuli_image(row: pd.DataFrame):
+    return open_stimuli_image(coco_id=row["cocoId"], coco_split=row["cocoSplit"])
 
 
 def str_subject(subject: int):
@@ -168,76 +184,43 @@ def str_session(session: int):
     return f"session{str(session).zfill(2)}"
 
 
-# took from https://github.com/clane9/NSD-Flat/
-def download_betas_given_subj_session(
-    subject: int,
-    session: int,
-    betas_type: str = "fsaverage/betas_fithrf_GLMdenoise_RR",
-    base_dir: str = DATA_DIR,
-) -> dict[str, str]:
-    file_paths = []
-    for h in ["lh", "rh"]:
-        filename = f"{h}.betas_{str_session(session)}.mgh"
-        full_path = os.path.join(base_dir, filename)
-        url = f"{BASE_URL}/nsddata_betas/ppdata/{str_subject(subject)}/{betas_type}/{filename}"
-        if not os.path.exists(full_path):
-            wget.download(url, out=base_dir)
-        file_paths.append(full_path)
-    return file_paths
+def betas_dir():
+    return os.path.join(DATA_DIR, "betas")
 
 
-# took from https://github.com/clane9/NSD-Flat/
-def load_betas_given_subj_session(
-    subject: int,
-    session: int,
-    betas_type: str = "fsaverage/betas_fithrf_GLMdenoise_RR",
-    base_dir: str = DATA_DIR,
-    dtype=np.float32,
-):
-    file_paths = download_betas_given_subj_session(subject, session, betas_type, base_dir)
-
-    hemispheres = []
-    for fp in file_paths:
-        img = nib.load(fp)
-        print(img.header.get_data_shape())
-        fdata: np.ndarray = img.get_fdata()  # (BETAS, 1, 1, TRIALS)
-        fdata = np.squeeze(fdata)  # (BETAS, TRIALS)
-        fdata = np.ascontiguousarray(fdata.T)  # (TRIALS, BETAS)
-        hemispheres.append(fdata)
-        print(fdata.shape)
-
-    # stitch together both hemispheres
-    return np.concat(hemispheres, axis=1, dtype=dtype)  # (TRIALS, BETAS*2)
-
-
-def download_vol_betas_subject_session(subject_id: str, session_id: str, base_dir: str = BETAS_DIR):
-    subject_dir = os.path.join(base_dir, subject_id)
+def download_vol_betas_subject_session(subject_id: str, session_id: str):
+    subject_dir = os.path.join(betas_dir(), subject_id)
     os.makedirs(subject_dir, exist_ok=True)
 
     filename = f"betas_{session_id}.nii.gz"
-    download_to = os.path.join(base_dir, subject_id, filename)
+    download_to = os.path.join(betas_dir(), subject_id, filename)
     if os.path.exists(download_to):
         return download_to
 
-    print(f"Downloading to {download_to}")
     link = f"nsddata_betas/ppdata/{subject_id}/func1pt8mm/betas_fithrf_GLMdenoise_RR/{filename}"
     download_nsd(link, download_to)
 
     return download_to
 
 
-def load_vol_betas_subject_session(subject_id: str, session_id: str, base_dir: str = BETAS_DIR):
-    filename = download_vol_betas_subject_session(subject_id, session_id, base_dir)
+def load_vol_betas_subject_session(subject_id: str, session_id: str):
+    filename = download_vol_betas_subject_session(subject_id, session_id, betas_dir())
     d = nib.load(filename)
     voxels = d.get_fdata()
     return voxels
 
 
-def download_all_session_betas(subject_id: str, base_dir: str = BETAS_DIR):
-    from concurrent.futures import ThreadPoolExecutor
+def download_all_session_betas(subject_id: str):
+    parallel_map(download_vol_betas_subject_session, [(subject_id, str_session(i), betas_dir()) for i in range(1, NUM_SESSIONS[subject_id] + 1)])
 
-    with ThreadPoolExecutor() as tpe:
-        tpe.map(lambda i: download_vol_betas_subject_session(subject_id, str_session(i), base_dir), range(1, NUM_SESSIONS[subject_id] + 1))
+
+def download_all_betas():
+    assert_data_dir()
+
+    for subject_idx in range(NUM_SUBS):
+        subject_id = str_subject(subject_idx + 1)
+        print(f"Downloading all session betas for {subject_id}")
+        download_all_session_betas(subject_id)
 
 
 def get_shape_data(filename):
@@ -308,20 +291,28 @@ def mask_unran_trials(df: pd.DataFrame):
     return mask
 
 
-def df_trials(base_dir=DATA_DIR):
-    df = unroll_stimuli_trials(df_stimuli_info(base_dir))
+def trials_path():
+    return os.path.join(DATA_DIR, "trials.parquet")
+
+
+def df_trials():
+    assert_data_dir()
+
+    # if already computed, just read from cache
+    cache_path = trials_path()
+    if os.path.exists(cache_path):
+        return pd.read_parquet(cache_path)
+
+    # otherwise process the info
+    df = unroll_stimuli_trials(df_stimuli_info())
     mask = mask_unran_trials(df)
     df = df[mask].copy()
     add_session_and_local_trial_info(df)
     df.reset_index(inplace=True)
+
+    # save to cache for next time I call
+    df.to_parquet(cache_path)
     return df
-
-
-def save_df_trials():
-    df = df_trials()
-    print(len(df))
-    print("Exporting to parquet")
-    df.to_parquet(os.path.join(DATA_DIR, "trials.parquet"))
 
 
 def undo_betas_compression(img) -> np.ndarray:
@@ -332,15 +323,15 @@ def undo_betas_compression(img) -> np.ndarray:
     return img.get_fdata(dtype=np.float32) / 300.0
 
 
-def load_session_betas(subject_id: str, session_id: str, session_trial_id: int, base_dir: str):
-    filename = os.path.join(base_dir, subject_id, f"betas_{session_id}.nii.gz")
+def load_session_betas(subject_id: str, session_id: str, session_trial_id: int):
+    filename = os.path.join(betas_dir(), subject_id, f"betas_{session_id}.nii.gz")
     img = nib.load(filename)
     trial_data = img.slicer[..., session_trial_id - 1]
     trial_data_float = undo_betas_compression(trial_data)
     return trial_data_float
 
 
-def load_betas_from_row(row: pd.Series, base_dir=BETAS_DIR):
+def load_betas_from_row(row: pd.Series):
     cols = row.keys()
     assert "subjectId" in cols
     assert "sessionId" in cols
@@ -349,11 +340,11 @@ def load_betas_from_row(row: pd.Series, base_dir=BETAS_DIR):
     subject_id = str_subject(row["subjectId"])  # between [1, 8]
     session_id = str_session(row["sessionId"])  # between [1, max_sessions for the subject]
     session_trial_id = row["sessionId"]  # local trial id between [1, 750]
-    d = load_session_betas(subject_id, session_id, session_trial_id, base_dir)
+    d = load_session_betas(subject_id, session_id, session_trial_id)
     return d
 
 
-def load_coco_image_from_row(row: pd.Series, base_dir=DATA_DIR):
+def load_coco_image_from_row(row: pd.Series):
     cols = row.keys()
     assert "cocoId" in cols
     assert "cocoSplit" in cols
@@ -361,18 +352,34 @@ def load_coco_image_from_row(row: pd.Series, base_dir=DATA_DIR):
     coco_id = row["cocoId"]
     coco_split = row["cocoSplit"]
 
-    return open_stimuli_image(coco_id, coco_split, base_dir)
+    return open_stimuli_image(coco_id, coco_split)
+
+
+def init_data_dir(data_dir: str):
+    # used for subsequent calls
+    global DATA_DIR
+    DATA_DIR = data_dir
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+
+def nsd_betas_images_trials(save_to: str = DATA_DIR) -> pd.DataFrame:
+    print(f"{Fore.CYAN}> Data in {DATA_DIR}{Style.RESET_ALL}")
+    init_data_dir(save_to)
+
+    print(f"{Fore.MAGENTA}>> Downloading all Betas{Style.RESET_ALL}")
+    download_all_betas()
+
+    print(f"{Fore.MAGENTA}>> Downloading all COCO Images{Style.RESET_ALL}")
+    df_download_stimuli_images(df_stimuli_info())
+
+    print(f"{Fore.MAGENTA}>> Unrolling stimulu info into dataframe{Style.RESET_ALL}")
+    return df_trials()
 
 
 def main():
-    trials = os.path.join(DATA_DIR, "trials.parquet")
-    df = pd.read_parquet(trials) if os.path.exists(trials) else df_trials()
-    df.to_parquet(trials)
-    print(df.head())
-    b = load_betas_from_row(df.iloc[0])
-    print(b.shape)
-    img = load_coco_image_from_row(df.iloc[0])
-    img.show()
+    df = nsd_betas_images_trials(save_to="./nsdata/")
+    print(load_betas_from_row(df.iloc[0]).shape)
+    load_coco_image_from_row(df.iloc[0]).show()
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import os
 from PIL import Image
 import nibabel as nib
 import numpy as np
+from tqdm import tqdm
 
 BASE_URL = "https://natural-scenes-dataset.s3.amazonaws.com"
 COCO_BASE_URL = "http://images.cocodataset.org"
@@ -14,6 +15,7 @@ INFO_FILENAME = "nsd_stim_info_merged.parquet"
 IMAGES_FILENAME = "nsd_stimuli.hdf5"
 
 # took from https://github.com/clane9/NSD-Flat/
+NUM_REP = 3  # image repeated at most 3 times per subject
 NUM_SUBS = 8
 NUM_TRIALS = 30_000
 MAX_SESSIONS = 40
@@ -156,6 +158,37 @@ def open_stimuli_image(coco_id: int, coco_split: str, base_dir: str = DATA_DIR) 
 
 def df_row_open_stimuli_image(row: pd.DataFrame, base_dir: str = DATA_DIR):
     return open_stimuli_image(coco_id=row["cocoId"], coco_split=row["cocoSplit"], base_dir=base_dir)
+
+
+def drop_subject_rep_cols(df: pd.DataFrame):
+    df.drop([f"subject{subject_idx + 1}_rep{rep_id}" for subject_idx in range(NUM_SUBS) for rep_id in range(3)], inplace=True, axis=1)
+
+
+def drop_subject_cols(df: pd.DataFrame):
+    df.drop([f"subject{subject_idx + 1}" for subject_idx in range(NUM_SUBS)], inplace=True, axis=1)
+
+
+# copied directly (with some renaming) from https://github.com/clane9/NSD-Flat/blob/main/convert_nsd_annotations.py#L277
+def unroll_stimuli_trials(stim_info: pd.DataFrame) -> pd.DataFrame:
+    long_stim_info = []
+
+    for ii in tqdm(range(len(stim_info))):
+        row = stim_info.iloc[ii].to_dict()
+        for subject_idx in range(NUM_SUBS):
+            subject_id = subject_idx + 1
+            for rep_id in range(NUM_REP):
+                trial_id = row[f"subject{subject_id}_rep{rep_id}"]
+                if trial_id > 0:
+                    long_row = {"subjectId": subject_id, "trialId": trial_id, **row}
+                    long_stim_info.append(long_row)
+
+    long_stim_info = pd.DataFrame.from_records(long_stim_info, index=["subjectId", "trialId"])
+    long_stim_info = long_stim_info.sort_index()
+
+    drop_subject_rep_cols(long_stim_info)
+    drop_subject_cols(long_stim_info)
+
+    return long_stim_info
 
 
 def str_subject(subject: int):

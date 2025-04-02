@@ -59,7 +59,7 @@ def nsd_betas_images_trials(save_to: str = DATA_DIR) -> pd.DataFrame:
 
 
 def main():
-    df = nsd_betas_images_trials(save_to="./nsdata/")
+    df = nsd_betas_images_trials(save_to="./test/")
     print(nsd_single_trial_betas(df.iloc[0]).shape)
     nsd_coco_image(df.iloc[0]).show()
 

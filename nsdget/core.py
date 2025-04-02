@@ -206,7 +206,7 @@ def load_vol_betas_subject_session(subject_id: str, session_id: str):
 
 
 def download_all_session_betas(subject_id: str):
-    parallel_map(download_vol_betas_subject_session, [(subject_id, str_session(i), betas_dir()) for i in range(1, NUM_SESSIONS[subject_id] + 1)])
+    parallel_map(download_vol_betas_subject_session, [(subject_id, str_session(i)) for i in range(1, NUM_SESSIONS[subject_id] + 1)])
 
 
 def download_all_betas():

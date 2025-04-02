@@ -9,6 +9,7 @@ import numpy as np
 BASE_URL = "https://natural-scenes-dataset.s3.amazonaws.com"
 COCO_BASE_URL = "http://images.cocodataset.org"
 DATA_DIR = os.path.join(".", "data")
+BETAS_DIR = os.path.join(DATA_DIR, "betas")
 INFO_FILENAME = "nsd_stim_info_merged.parquet"
 IMAGES_FILENAME = "nsd_stimuli.hdf5"
 
@@ -207,7 +208,7 @@ def load_betas_given_subj_session(
     return np.concat(hemispheres, axis=1, dtype=dtype)  # (TRIALS, BETAS*2)
 
 
-def download_vol_betas_subject_session(subject_id: str, session_id: str, base_dir: str = os.path.join(DATA_DIR, "betas")):
+def download_vol_betas_subject_session(subject_id: str, session_id: str, base_dir: str = BETAS_DIR):
     subject_dir = os.path.join(base_dir, subject_id)
     os.makedirs(subject_dir, exist_ok=True)
 
@@ -224,18 +225,22 @@ def download_vol_betas_subject_session(subject_id: str, session_id: str, base_di
     return download_to
 
 
-def load_vol_betas_subject_session(subject_id: str, session_id: str, base_dir: str = DATA_DIR):
+def load_vol_betas_subject_session(subject_id: str, session_id: str, base_dir: str = BETAS_DIR):
     filename = download_vol_betas_subject_session(subject_id, session_id, base_dir)
     d = nib.load(filename)
     voxels = d.get_fdata()
     return voxels
 
 
-def download_all_session_betas(subject_id: str, base_dir: str = os.path.join(DATA_DIR, "betas")):
+def download_all_session_betas(subject_id: str, base_dir: str = BETAS_DIR):
     from concurrent.futures import ThreadPoolExecutor
 
     with ThreadPoolExecutor() as tpe:
         tpe.map(lambda i: download_vol_betas_subject_session(subject_id, str_session(i), base_dir), range(1, NUM_SESSIONS[subject_id] + 1))
+
+
+def get_shape_data(filename):
+    return nib.load(filename).header.get_data_shape()
 
 
 def main():
@@ -252,9 +257,11 @@ def main():
 
     for subject_idx in range(NUM_SUBS):
         subject_id = str_subject(subject_idx + 1)  # since subjects are 1 indexed from 1 to 8
+        download_all_session_betas(subject_id)  # download all at once for speed
         for session_idx in range(NUM_SESSIONS[subject_id]):
             session_id = str_session(session_idx + 1)
-            print(subject_id, session_id)
+            # for trial_idx in range(NUM_TRIALS):
+            #     print(trial_idx)
 
 
 if __name__ == "__main__":

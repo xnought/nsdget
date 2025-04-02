@@ -24,7 +24,7 @@ or
 pip install nsdget
 ```
 
-Then, to donwnload the betas for all 8 subjects and 73k coco images do
+Then, to download the betas for all 8 subjects and 73k coco images do
 
 ```python
 from nsdget import nsd_betas_images_trials, nsd_coco_image, nsd_single_trial_betas

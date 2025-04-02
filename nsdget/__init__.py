@@ -250,14 +250,11 @@ def main():
     # betas = load_vol_betas_subject_session(session_id=str_session(session), subject_id=str_subject(subject))
     # print(betas.shape)
 
-    # for subject_idx in range(NUM_SUBS):
-    #     subject_id = str_subject(subject_idx + 1)  # since subjects are 1 indexed from 1 to 8
-    #     for session_idx in range(NUM_SESSIONS[subject_id]):
-    #         session_id = str_session(session_idx + 1)
-    #         print(subject_id, session_id, "Downloading")
-    #         download_vol_betas_subject_session(subject_id, session_id)
-
-    download_all_session_betas("subj01")
+    for subject_idx in range(NUM_SUBS):
+        subject_id = str_subject(subject_idx + 1)  # since subjects are 1 indexed from 1 to 8
+        for session_idx in range(NUM_SESSIONS[subject_id]):
+            session_id = str_session(session_idx + 1)
+            print(subject_id, session_id)
 
 
 if __name__ == "__main__":

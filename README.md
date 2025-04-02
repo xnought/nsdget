@@ -8,12 +8,6 @@ Quickly get a subset of stimuli (images shown to subject) and corresponding fMRI
 
 Not affiliated with Natural Scenes Dataset. I just wanted an easier and quicker way to download the data I needed from them (hence this package).
 
-**Roadmap**
-
-- [x] Create a dataframe with every trial
-- [x] Have the dataframe point to images downloaded
-- [x] Create way to get betas given dataframe row
-
 ## Usage
 
 To use the data, first submit a form to the NSD people: [NSD Data Access Agreement](https://docs.google.com/forms/d/e/1FAIpQLSduTPeZo54uEMKD-ihXmRhx0hBDdLHNsVyeo_kCb8qbyAkXuQ/viewform?usp=send_form). Then,
@@ -32,16 +26,22 @@ pip install nsdget
 
 **API**
 
-No API reference yet. See examples of usage:
+Simple API, all there is:
 
-- Download stimuli images (coco data) example in [`view_info.ipynb`](./notebooks/view_info.ipynb)
+```python
+from nsdget import nsd_betas_images_trials, nsd_coco_image, nsd_single_trial_betas
 
+# download and use data
+df: pd.DataFrame = nsd_betas_images_trials(save_to="./nsdata/")
+betas: np.ndarray = sd_single_trial_betas(df.iloc[0]) # 1.8mm res fmri single trial from NSD for the given row (index 0 here) 
+image0: PIL.Image = nsd_coco_image(df.iloc[0]) # crops how NSD did and gives you the PIL image (can easily be converted to numpy too)
+```
 
 ## Development
 
 ```bash
 uv sync
-make
+uv run nsdget
 ```
 
 ## References

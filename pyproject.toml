@@ -9,7 +9,9 @@ dependencies = [
     "colorama>=0.4.6",
     "nibabel>=5.3.2",
     "numpy>=2.2.3",
+    "pandas>=2.2.3",
     "pillow>=11.1.0",
+    "pyarrow>=19.0.1",
     "tqdm>=4.67.1",
 ]
 
@@ -21,12 +23,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = [
-    "ipykernel>=6.29.5",
-    "matplotlib>=3.10.1",
-    "pandas>=2.2.3",
-    "pyarrow>=19.0.1",
-]
+dev = ["ipykernel>=6.29.5", "matplotlib>=3.10.1"]
 
 [tool.hatch.build]
-exclude = ["notebooks/", "Makefile", "uv.lock"]
+exclude = ["notebooks/", "Makefile", "uv.lock", "nsdata/"]

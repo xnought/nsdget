@@ -10,10 +10,9 @@ Not affiliated with Natural Scenes Dataset. I just wanted an easier and quicker 
 
 **Roadmap**
 
-- [x] Functions to download stimuli (images) w/out downloading the 40gb total image object. Just download images directly from COCO.
-- [ ] Function to download fMRI data  
-- [ ] Document functions better
-- [x] Publish to PyPi
+- [ ] Create a dataframe with every trial
+- [ ] Have the dataframe point to images downloaded
+- [ ] Create way to get betas given dataframe row
 
 ## Usage
 

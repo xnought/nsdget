@@ -1,12 +1,12 @@
 [project]
 name = "nsdget"
-version = "0.0.2"
+version = "0.0.3"
 description = "Python API to easily download stimuli and fMRI betas from Natural Scenes Dataset."
 readme = "README.md"
 authors = [{ name = "xnought", email = "drbertucci@hotmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
-    "colorama>=0.4.6",
+    "colored>=2.3.0",
     "nibabel>=5.3.2",
     "numpy>=2.2.3",
     "pandas>=2.2.3",

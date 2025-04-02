@@ -8,6 +8,7 @@ from tqdm import tqdm
 from urllib.request import urlretrieve
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
+from colored import Fore, Back, Style
 
 
 BASE_URL = "https://natural-scenes-dataset.s3.amazonaws.com"
@@ -331,3 +332,11 @@ def init_data_dir(data_dir: str):
     global DATA_DIR
     DATA_DIR = data_dir
     os.makedirs(DATA_DIR, exist_ok=True)
+
+
+def title_print(s: str):
+    print(f"{Fore.white}{Back.magenta}> Data in {s}{Style.reset}")
+
+
+def subtitle_print(s: str):
+    print(f"{Fore.white}{Back.green}>> {s}{Style.reset}")

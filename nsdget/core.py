@@ -200,24 +200,29 @@ def download_vol_betas_subject_session(subject_id: str, session_id: str):
     return download_to
 
 
-def load_vol_betas_subject_session(subject_id: str, session_id: str):
-    filename = download_vol_betas_subject_session(subject_id, session_id, betas_dir())
-    d = nib.load(filename)
-    voxels = d.get_fdata()
-    return voxels
-
-
 def download_all_session_betas(subject_id: str):
     parallel_map(download_vol_betas_subject_session, [(subject_id, str_session(i)) for i in range(1, NUM_SESSIONS[subject_id] + 1)])
 
 
-def download_all_betas():
-    assert_data_dir()
-
+def iter_subject_sessions():
     for subject_idx in range(NUM_SUBS):
         subject_id = str_subject(subject_idx + 1)
-        print(f"Downloading all session betas for {subject_id}")
-        download_all_session_betas(subject_id)
+        for session_idx in range(NUM_SESSIONS[subject_id]):
+            session_id = str_session(session_idx + 1)
+            yield subject_id, session_id
+
+
+def download_all_betas():
+    assert_data_dir()
+    parallel_map(download_vol_betas_subject_session, list(iter_subject_sessions()))
+
+
+def uncompress_nii_betas(img: NiiImage) -> NiiImage:
+    ndarray = undo_betas_compression(img)
+    new_header = img.header.copy()
+    new_header.set_data_dtype(np.float32)
+    unzipped_img = nib.nifti1.Nifti1Image(ndarray, affine=img.affine, header=new_header)
+    return unzipped_img
 
 
 def get_shape_data(filename):
@@ -324,13 +329,7 @@ def load_session_betas_nii(subject_id: str, session_id: str, session_trial_id: i
     filename = os.path.join(betas_dir(), subject_id, f"betas_{session_id}.nii.gz")
     img: NiiImage = nib.load(filename)
     trial_data = img.slicer[..., session_trial_id - 1]
-    return trial_data
-
-
-def load_session_betas(subject_id: str, session_id: str, session_trial_id: int):
-    img = load_session_betas_nii(subject_id, session_id, session_trial_id)
-    trial_data_float = undo_betas_compression(img)
-    return trial_data_float
+    return uncompress_nii_betas(trial_data)
 
 
 def init_data_dir(data_dir: str):

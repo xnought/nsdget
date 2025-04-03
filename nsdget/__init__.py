@@ -5,7 +5,6 @@ from .core import (
     subtitle_print,
     str_session,
     str_subject,
-    load_session_betas,
     open_stimuli_image,
     download_all_betas,
     df_download_stimuli_images,
@@ -13,17 +12,12 @@ from .core import (
     df_trials,
     init_data_dir,
     load_session_betas_nii,
-    undo_betas_compression,
-    NiiImage,
     DATA_DIR,
+    NiiImage,
 )
 
 
-def nsd_betas_nii_to_numpy(img: NiiImage):
-    return undo_betas_compression(img)
-
-
-def nsd_single_trial_betas(row: pd.Series, numpy=True):
+def nsd_single_trial_betas(row: pd.Series) -> NiiImage:
     """
     numpy=True will return a np.ndarray
     numpy=False will return a NiiImage slice (like what you get from nib.load())
@@ -37,11 +31,7 @@ def nsd_single_trial_betas(row: pd.Series, numpy=True):
     session_id = str_session(row["sessionId"])  # between [1, max_sessions for the subject]
     session_trial_id = row["sessionId"]  # local trial id between [1, 750]
 
-    # either use .nii image or return numpy
-    if numpy:
-        return load_session_betas(subject_id, session_id, session_trial_id)
-    else:
-        return load_session_betas_nii(subject_id, session_id, session_trial_id)
+    return load_session_betas_nii(subject_id, session_id, session_trial_id)
 
 
 def nsd_coco_image(row: pd.Series):
@@ -59,7 +49,7 @@ def nsd_betas_images_trials(save_to: str = DATA_DIR) -> pd.DataFrame:
     title_print(f"Data points to {save_to}")
     init_data_dir(save_to)
 
-    subtitle_print("Downloading All Betas")
+    subtitle_print("Downloading All Betas (will take some time >1hr)")
     download_all_betas()
 
     subtitle_print("Downloading 73k COCO Images")
@@ -71,8 +61,7 @@ def nsd_betas_images_trials(save_to: str = DATA_DIR) -> pd.DataFrame:
 
 def main():
     df = nsd_betas_images_trials(save_to="./nsdata/")
-    print(nsd_single_trial_betas(df.iloc[0]).shape)
-    nsd_coco_image(df.iloc[0]).show()
+    print(df.head())
 
 
 if __name__ == "__main__":

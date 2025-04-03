@@ -30,15 +30,26 @@ Then, to download the betas for all 8 subjects and 73k coco images do
 ```python
 from nsdget import nsd_betas_images_trials, nsd_coco_image, nsd_single_trial_betas
 
-# download and use data
-df: pd.DataFrame = nsd_betas_images_trials(save_to="./nsdata/")
-betas: np.ndarray = nsd_single_trial_betas(df.iloc[0]) # 1.8mm res fmri single trial from NSD for the given row (index 0 here) 
-image0: PIL.Image = nsd_coco_image(df.iloc[0]) # crops how NSD did and gives you the PIL image (can easily be converted to numpy too)
+df = nsd_betas_images_trials(save_to="./nsdata/") # Pandas DataFrame
+betas = nsd_single_trial_betas(df.iloc[0]) # Nifty Image 
+image = nsd_coco_image(df.iloc[0])  # PIL Image
 ```
 
 Example above ran in [`example.ipynb`](./notebooks/example.ipynb).
 
 Note that download happens only once. After the first slow run, subsequent runs will be very fast.
+
+If you want the betas in numpy, just convert from nibabel image to numpy like
+
+```python
+nd_betas = betas.get_fdata() 
+```
+
+If you want the COCO image in numpy just convert the PIL Image to numpy like
+
+```python
+nd_image = np.asarray(image)
+```
 
 ## Development
 

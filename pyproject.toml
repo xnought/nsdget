@@ -1,6 +1,6 @@
 [project]
 name = "nsdget"
-version = "0.0.3"
+version = "0.0.4"
 description = "Python API to easily download stimuli and fMRI betas from Natural Scenes Dataset."
 readme = "README.md"
 authors = [{ name = "xnought", email = "drbertucci@hotmail.com" }]
@@ -31,4 +31,4 @@ dev = [
 ]
 
 [tool.hatch.build]
-exclude = ["notebooks/", "Makefile", "uv.lock", "nsdata/"]
+exclude = ["notebooks/", "Makefile", "uv.lock", "nsdata/", "NOTES.md"]

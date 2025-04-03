@@ -30,9 +30,9 @@ Then, to download the betas for all 8 subjects and 73k coco images do
 ```python
 from nsdget import nsd_betas_images_trials, nsd_coco_image, nsd_single_trial_betas
 
-df = nsd_betas_images_trials(save_to="./nsdata/") # Pandas DataFrame
-betas = nsd_single_trial_betas(df.iloc[0]) # Nifty Image 
-image = nsd_coco_image(df.iloc[0])  # PIL Image
+df = nsd_betas_images_trials(save_to="./nsdata/") # 213k trials in a Pandas DataFrame
+betas = nsd_single_trial_betas(df.iloc[0]) # first betas trial as Nifty Image 
+image = nsd_coco_image(df.iloc[0])  # first trial stimulus as COCO PIL Image
 ```
 
 Example above ran in [`example.ipynb`](./notebooks/example.ipynb).

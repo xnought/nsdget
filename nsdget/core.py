@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
 from colored import Fore, Back, Style
 
+NiiImage = nib.nifti1.Nifti1Image
 
 BASE_URL = "https://natural-scenes-dataset.s3.amazonaws.com"
 COCO_BASE_URL = "http://images.cocodataset.org"
@@ -311,7 +312,7 @@ def df_trials():
     return df
 
 
-def undo_betas_compression(img) -> np.ndarray:
+def undo_betas_compression(img: NiiImage) -> np.ndarray:
     """
     On https://cvnlab.slite.page/p/6CusMRYfk0/Functional-data-NSD they say
     that you need to convert back to float, then divide by 300
@@ -319,11 +320,16 @@ def undo_betas_compression(img) -> np.ndarray:
     return img.get_fdata(dtype=np.float32) / 300.0
 
 
-def load_session_betas(subject_id: str, session_id: str, session_trial_id: int):
+def load_session_betas_nii(subject_id: str, session_id: str, session_trial_id: int) -> NiiImage:
     filename = os.path.join(betas_dir(), subject_id, f"betas_{session_id}.nii.gz")
-    img = nib.load(filename)
+    img: NiiImage = nib.load(filename)
     trial_data = img.slicer[..., session_trial_id - 1]
-    trial_data_float = undo_betas_compression(trial_data)
+    return trial_data
+
+
+def load_session_betas(subject_id: str, session_id: str, session_trial_id: int):
+    img = load_session_betas_nii(subject_id, session_id, session_trial_id)
+    trial_data_float = undo_betas_compression(img)
     return trial_data_float
 
 

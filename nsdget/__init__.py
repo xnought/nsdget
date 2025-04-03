@@ -12,11 +12,22 @@ from .core import (
     df_stimuli_info,
     df_trials,
     init_data_dir,
+    load_session_betas_nii,
+    undo_betas_compression,
+    NiiImage,
     DATA_DIR,
 )
 
 
-def nsd_single_trial_betas(row: pd.Series):
+def nsd_betas_nii_to_numpy(img: NiiImage):
+    return undo_betas_compression(img)
+
+
+def nsd_single_trial_betas(row: pd.Series, numpy=True):
+    """
+    numpy=True will return a np.ndarray
+    numpy=False will return a NiiImage slice (like what you get from nib.load())
+    """
     cols = row.keys()
     assert "subjectId" in cols
     assert "sessionId" in cols
@@ -25,8 +36,12 @@ def nsd_single_trial_betas(row: pd.Series):
     subject_id = str_subject(row["subjectId"])  # between [1, 8]
     session_id = str_session(row["sessionId"])  # between [1, max_sessions for the subject]
     session_trial_id = row["sessionId"]  # local trial id between [1, 750]
-    d = load_session_betas(subject_id, session_id, session_trial_id)
-    return d
+
+    # either use .nii image or return numpy
+    if numpy:
+        return load_session_betas(subject_id, session_id, session_trial_id)
+    else:
+        return load_session_betas_nii(subject_id, session_id, session_trial_id)
 
 
 def nsd_coco_image(row: pd.Series):

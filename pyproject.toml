@@ -23,7 +23,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["ipykernel>=6.29.5", "matplotlib>=3.10.1"]
+dev = [
+    "ipykernel>=6.29.5",
+    "matplotlib>=3.10.1",
+    "nilearn>=0.11.1",
+    "torch==2.2.2",
+]
 
 [tool.hatch.build]
 exclude = ["notebooks/", "Makefile", "uv.lock", "nsdata/"]

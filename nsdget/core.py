@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
 from colored import Fore, Back, Style
 import shutil
+from pycocotools.coco import COCO
 
 NiiImage = nib.nifti1.Nifti1Image
 
@@ -20,7 +21,6 @@ BETAS_DIR = os.path.join(DATA_DIR, "betas")
 INFO_FILENAME = "nsd_stim_info_merged.parquet"
 IMAGES_FILENAME = "nsd_stimuli.hdf5"
 TRIALS_FILENAME = "trials.parquet"
-ANNOT_DIR = os.path.join(DATA_DIR, "annotations")
 
 # took from https://github.com/clane9/NSD-Flat/
 NUM_REP = 3  # image repeated at most 3 times per subject
@@ -351,9 +351,52 @@ def subtitle_print(s: str):
 
 def download_coco_annotations():
     """Download the annotations, unzip, then delete the .zip"""
-
     assert_data_dir()
     downloaded_zip = os.path.join(DATA_DIR, "annotations_trainval2017.zip")
     wget("http://images.cocodataset.org/annotations/annotations_trainval2017.zip", downloaded_zip)
     shutil.unpack_archive(downloaded_zip, DATA_DIR)
     os.remove(downloaded_zip)
+
+
+def annotations_dir():
+    return os.path.join(DATA_DIR, "annotations")
+
+
+def coco_captions(coco: COCO, img_id):
+    for d in coco.loadAnns(coco.getAnnIds(img_id)):
+        yield d["caption"]
+
+
+def coco_categories(coco: COCO, category_id):
+    return coco.loadCats(category_id)[0]["name"]
+
+
+def coco_annotations_iter(coco: COCO, img_id):
+    for d in coco.loadAnns(coco.getAnnIds(img_id)):
+        yield {"bbox": d["bbox"], "iscrowd": bool(d["iscrowd"]), "category": coco_categories(coco, d["category_id"])}
+
+
+def transforms_dir():
+    assert_data_dir()
+    return os.path.join(DATA_DIR, "transforms")
+
+
+def transform_file(subject_id: str):
+    return os.path.join(transforms_dir(), f"{subject_id}_func1pt8-to-MNI.nii.gz")
+
+
+def download_transform(subject_id: str):
+    outfile = transform_file(subject_id)
+    if os.path.exists(outfile):
+        return
+    download_nsd(f"nsddata/ppdata/{subject_id}/transforms/func1pt8-to-MNI.nii.gz", outfile)
+
+
+def download_all_transforms():
+    print("downloading transforms")
+    os.makedirs(transforms_dir(), exist_ok=True)
+    parallel_map(download_transform, [(str_subject(i),) for i in range(1, NUM_SUBS + 1)])
+
+
+def convert_session_fmri_to_(session_id):
+    # nsd_mapdata.load_transform()

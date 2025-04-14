@@ -14,7 +14,7 @@ from .core import (
     load_session_betas_nii,
     DATA_DIR,
     NiiImage,
-    download_coco_annotations,
+    download_all_transforms,
 )
 
 
@@ -63,10 +63,8 @@ def nsd_betas_images_trials(save_to: str = DATA_DIR) -> pd.DataFrame:
 def main():
     init_data_dir("data/")
     # df = df_trials()
-    # print(df.keys())
-    # print(len(df[df["shared1000"]]))
-    # print(len(df))
-    download_coco_annotations()
+    # coco_annotations()
+    download_all_transforms()
 
 
 if __name__ == "__main__":

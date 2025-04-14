@@ -396,7 +396,3 @@ def download_all_transforms():
     print("downloading transforms")
     os.makedirs(transforms_dir(), exist_ok=True)
     parallel_map(download_transform, [(str_subject(i),) for i in range(1, NUM_SUBS + 1)])
-
-
-def convert_session_fmri_to_(session_id):
-    # nsd_mapdata.load_transform()

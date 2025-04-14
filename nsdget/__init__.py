@@ -60,8 +60,15 @@ def nsd_betas_images_trials(save_to: str = DATA_DIR) -> pd.DataFrame:
 
 
 def main():
-    df = nsd_betas_images_trials(save_to="./nsdata/")
-    print(df.head())
+    from .nsdcode_forked.nsdcode.nsd_mapdata import NSDmapdata
+    # df = nsd_betas_images_trials(save_to="./nsdata/")
+    # shapes = set()
+    # for i, row in df.sample(100).iterrows():
+    # b = nsd_single_trial_betas(row)
+    # shapes.add(b.shape)
+
+    # print(shapes)
+    print("runs")
 
 
 if __name__ == "__main__":

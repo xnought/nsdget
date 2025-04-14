@@ -890,7 +890,7 @@ wheels = [
 
 [[package]]
 name = "nsdget"
-version = "0.0.3"
+version = "0.0.4"
 source = { editable = "." }
 dependencies = [
     { name = "colored" },
@@ -899,6 +899,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pillow" },
     { name = "pyarrow" },
+    { name = "scipy" },
     { name = "tqdm" },
 ]
 
@@ -918,6 +919,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pillow", specifier = ">=11.1.0" },
     { name = "pyarrow", specifier = ">=19.0.1" },
+    { name = "scipy", specifier = ">=1.15.2" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 

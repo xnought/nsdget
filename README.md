@@ -73,6 +73,7 @@ TOKEN=... make publish # insert your PyPi token where ...
 
 ## References
 
+- https://github.com/cvnlab/nsdcode directly copied and put into [`nscode_forked/`](./nsdget/nsdcode_forked/) w/ modifications to transform the 1.8mm fMRI betas into MNI space. Compliant under their license located [`nsdcode_forked/LICENSE`](./nsdget/nsdcode_forked/LICENSE). All credit to Kendrick Kay and Ian Charest for that code.
 - https://naturalscenesdataset.org/ (Allen, St-Yves, Wu, Breedlove, Prince, Dowdle, Nau, Caron, Pestilli, Charest, Hutchinson, Naselaris*, & Kay*. A massive 7T fMRI dataset to bridge cognitive neuroscience and artificial intelligence. Nature Neuroscience (2021).)
 - https://cocodataset.org/#home
 - https://github.com/clane9/NSD-Flat/blob/b6851300ea3778eae7e4dbb88a85d71ce18cb9a5/generate_dataset.py#L157

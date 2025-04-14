@@ -10,6 +10,7 @@ Shoutout to https://github.com/clane9/NSD-Flat/ since I reused some of the funct
 
 **TODO**
 
+- [ ] Only download the needed data (not all) 
 - [ ] Map to MNI space as an option https://github.com/cvnlab/nsdcode/blob/master/examples/examples_nsdmapdata.py#L192
 
 ## Usage

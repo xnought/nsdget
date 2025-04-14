@@ -9,6 +9,7 @@ from urllib.request import urlretrieve
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
 from colored import Fore, Back, Style
+import shutil
 
 NiiImage = nib.nifti1.Nifti1Image
 
@@ -19,6 +20,7 @@ BETAS_DIR = os.path.join(DATA_DIR, "betas")
 INFO_FILENAME = "nsd_stim_info_merged.parquet"
 IMAGES_FILENAME = "nsd_stimuli.hdf5"
 TRIALS_FILENAME = "trials.parquet"
+ANNOT_DIR = os.path.join(DATA_DIR, "annotations")
 
 # took from https://github.com/clane9/NSD-Flat/
 NUM_REP = 3  # image repeated at most 3 times per subject
@@ -345,3 +347,13 @@ def title_print(s: str):
 
 def subtitle_print(s: str):
     print(f"{Fore.white}{Back.green}>> {s}{Style.reset}")
+
+
+def download_coco_annotations():
+    """Download the annotations, unzip, then delete the .zip"""
+
+    assert_data_dir()
+    downloaded_zip = os.path.join(DATA_DIR, "annotations_trainval2017.zip")
+    wget("http://images.cocodataset.org/annotations/annotations_trainval2017.zip", downloaded_zip)
+    shutil.unpack_archive(downloaded_zip, DATA_DIR)
+    os.remove(downloaded_zip)

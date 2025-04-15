@@ -14,9 +14,6 @@ from .core import (
     load_session_betas_nii,
     DATA_DIR,
     NiiImage,
-    download_all_transforms,
-    betas_to_mni,
-    all_sessions_to_mni,
 )
 
 
@@ -69,7 +66,6 @@ def main():
     # df = df_trials()
     # download_all_transforms()
     # betas_to_mni(None, "subj01")
-    all_sessions_to_mni()
 
 
 if __name__ == "__main__":

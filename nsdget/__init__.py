@@ -15,6 +15,8 @@ from .core import (
     DATA_DIR,
     NiiImage,
     download_all_transforms,
+    betas_to_mni,
+    all_sessions_to_mni,
 )
 
 
@@ -62,9 +64,12 @@ def nsd_betas_images_trials(save_to: str = DATA_DIR) -> pd.DataFrame:
 
 def main():
     init_data_dir("data/")
+    # download_all_betas()
+
     # df = df_trials()
-    # coco_annotations()
-    download_all_transforms()
+    # download_all_transforms()
+    # betas_to_mni(None, "subj01")
+    all_sessions_to_mni()
 
 
 if __name__ == "__main__":

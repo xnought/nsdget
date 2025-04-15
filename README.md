@@ -8,11 +8,6 @@ Note: I'm not affiliated with [Natural Scenes Dataset](https://naturalscenesdata
 
 Shoutout to https://github.com/clane9/NSD-Flat/ since I reused some of the functions from there. Thank you!
 
-**TODO**
-
-- [x] Map to MNI space as an option https://github.com/cvnlab/nsdcode/blob/master/examples/examples_nsdmapdata.py#L192. 
-- [ ] Issue: tried it out and the transform will take ~1hour per session. And since there are 300+ sessions across the subjects, I aint waiting that long! Find a better solution
-
 ## Usage
 
 To use the data, please fill out the [NSD Data Access Agreement](https://docs.google.com/forms/d/e/1FAIpQLSduTPeZo54uEMKD-ihXmRhx0hBDdLHNsVyeo_kCb8qbyAkXuQ/viewform?usp=send_form) first. Then download the `nsdget` python package:

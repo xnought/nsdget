@@ -9,9 +9,6 @@ from urllib.request import urlretrieve
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable
 from colored import Fore, Back, Style
-import shutil
-from pycocotools.coco import COCO
-from .nsdcode_forked.nsdcode.transform_data import transform_data
 
 NiiImage = nib.nifti1.Nifti1Image
 
@@ -348,90 +345,3 @@ def title_print(s: str):
 
 def subtitle_print(s: str):
     print(f"{Fore.white}{Back.green}>> {s}{Style.reset}")
-
-
-def download_coco_annotations():
-    """Download the annotations, unzip, then delete the .zip"""
-    assert_data_dir()
-    downloaded_zip = os.path.join(DATA_DIR, "annotations_trainval2017.zip")
-    wget("http://images.cocodataset.org/annotations/annotations_trainval2017.zip", downloaded_zip)
-    shutil.unpack_archive(downloaded_zip, DATA_DIR)
-    os.remove(downloaded_zip)
-
-
-def annotations_dir():
-    return os.path.join(DATA_DIR, "annotations")
-
-
-def coco_captions(coco: COCO, img_id):
-    for d in coco.loadAnns(coco.getAnnIds(img_id)):
-        yield d["caption"]
-
-
-def coco_categories(coco: COCO, category_id):
-    return coco.loadCats(category_id)[0]["name"]
-
-
-def coco_annotations_iter(coco: COCO, img_id):
-    for d in coco.loadAnns(coco.getAnnIds(img_id)):
-        yield {"bbox": d["bbox"], "iscrowd": bool(d["iscrowd"]), "category": coco_categories(coco, d["category_id"])}
-
-
-def transforms_dir():
-    assert_data_dir()
-    return os.path.join(DATA_DIR, "transforms")
-
-
-def transform_file(subject_id: str):
-    return os.path.join(transforms_dir(), f"{subject_id}_func1pt8-to-MNI.nii.gz")
-
-
-def download_transform(subject_id: str):
-    outfile = transform_file(subject_id)
-    if os.path.exists(outfile):
-        return
-    download_nsd(f"nsddata/ppdata/{subject_id}/transforms/func1pt8-to-MNI.nii.gz", outfile)
-
-
-def download_all_transforms():
-    print("downloading transforms")
-    os.makedirs(transforms_dir(), exist_ok=True)
-    parallel_map(download_transform, [(str_subject(i),) for i in range(1, NUM_SUBS + 1)])
-
-
-def betas_to_mni(betas: np.ndarray, subject_id: str, outputfile=None) -> np.ndarray:
-    transform = nib.load(transform_file(subject_id)).get_fdata()
-    transform_args = {
-        "casenum": 1,  # flag used to indicate transform from vol to another vol
-        "sourcespace": "func1pt8",
-        "targetspace": "MNI",
-        "interptype": "cubic",
-        "badval": 0,
-        "outputfile": outputfile,
-        "outputclass": betas.dtype,
-        "voxelsize": 1,  # mm
-        "res": None,
-        "fsdir": None,
-    }
-    return transform_data(transform, betas, transform_args)
-
-
-def session_to_mni(subject_id: str, session_id: str):
-    subj_path = os.path.join(betas_dir(), subject_id)
-    infile = os.path.join(subj_path, f"betas_{session_id}.nii.gz")
-    outfile = os.path.join(subj_path, f"betas_{session_id}_mni.nii.gz")
-
-    if os.path.exists(infile):
-        # convert 1.8mm session into standard MNI space. save with _mni added to the name
-        session_betas = undo_betas_compression(nib.load(infile))
-        betas_to_mni(session_betas, subject_id, outfile)  # _mni appended to the name
-
-        # we don't need the original betas file anymore, so can just delete
-        # we just want the _mni files
-        # os.remove(infile)
-
-
-def all_sessions_to_mni():
-    # higher intensive in ram, so probably don't use max number of processors
-    # So each session probably inflates ~800mb in ram, so if I have 4 going I have that 3.2gb in ram at any given time
-    parallel_map(session_to_mni, list(iter_subject_sessions()))
